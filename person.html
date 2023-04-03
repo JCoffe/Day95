@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Map Example</title>
+    <style>
+      #map {
+        height: 600px;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+        <h3>Clinic on map (ver 0.1)</h3>
+    <div>
+      <form action="add_adress">
+      <input type="text" id="pt-adress" name="person-adress" size="40" placeholder="Add adress for person" maxlength="100">
+      <input type="submit" value="Add 🤕">
+      </form>
+      <br>
+      <input type="checkbox" id="doctor-filter" checked>
+      <label for="doctor-filter">Show clinics with doctors 👩‍⚕️👨‍⚕️</label>
+      <br>
+      <input type="checkbox" id="physio-filter" checked>
+      <label for="doctor-filter">Show clinics with physiotherapists  🏋️‍♂️🏋️‍♀</label>
+    </div>
+    <div id="map"></div>
+    <script>
+    function initMap() {
+        // Define the map
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 5,
+          center: { lat: 60.1282, lng: 18.6435 }
+        });
+
+        var personAdress = {{ person_adress | tojson}};
+
+        if (personAdress) {
+
+          var personMarker = new google.maps.Marker({
+            position: { lat: personAdress[0].lat, lng: personAdress[0].long },
+            map: map,
+            title: "Person",
+            icon: "/static/injuredperson.png",
+            opacity: 0.8,
+            });
+        }
+
+        var clinics = {{ kliniker | tojson }};
+
+        var markers = [];
+        // Create an array to hold the info window content for each clinic
+        var infoWindowContent = [];
+
+
+        // Loop through the locations and create markers for each
+        for (var i = 0; i < clinics.length; i++) {
+          var marker = new google.maps.Marker({
+            position: { lat: clinics[i].lat, lng: clinics[i].long },
+            map: map,
+            title: clinics[i].name,
+          });
+
+        // Set the doctor and physio properties for the marker
+        marker.doctor = clinics[i].doctor;
+        marker.physio = clinics[i].physio;
+
+        // Create the info window content for the clinic
+        var contentString = '<div id="content">' +
+        '<h3>' + clinics[i].name + '</h3>' +
+        '<p>' + clinics[i].address + '</p>' +
+        '<p>' + clinics[i].comment + '</p>' +
+        '<p>' + (clinics[i].doctor == 1 ? "Doctor available" : "No doctor") + '</p>' +
+        '<p>' + (clinics[i].physio == 1 ? "Physiotherapist available" : "No physiotherapist") + '</p>' +
+        '<p>' + (clinics[i].send_ticket == 1 ? "Send ticket to clinic" : "Book in the system / Send ticket to customer") + '</p>' +
+        '</div>';
+        infoWindowContent.push(contentString);
+
+        // Create the info window for the clinic
+        var infoWindow = new google.maps.InfoWindow({
+        content: infoWindowContent[i]
+        });
+
+       // Add a click event listener to the marker to open the info window
+      marker.addListener('click', (function(marker, infoWindow) {
+      return function() {
+      infoWindow.open(map, marker);
+      }
+      })(marker, infoWindow));
+
+      markers.push(marker);
+      }
+
+      var doctorFilter = document.getElementById('doctor-filter');
+      var physioFilter = document.getElementById('physio-filter');
+
+      doctorFilter.addEventListener('change', function() {
+      showMarkers();
+      });
+
+      physioFilter.addEventListener('change', function() {
+      showMarkers()
+      });
+
+      // Function to show/hide markers based on checkbox status
+      function showMarkers() {
+        var showDoctors = doctorFilter.checked;
+        var showPhysios = physioFilter.checked;
+
+        for (var i = 0; i < markers.length; i++) {
+        var marker = markers[i];
+        var doctor = marker.doctor;
+        var physio = marker.physio;
+
+        if ((doctor && showDoctors) || (physio && showPhysios)) {
+          marker.setVisible(true);
+          } else {
+          marker.setVisible(false);
+        }
+      }
+      }
+
+    }
+
+
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"></script>
+  </body>
+</html>
